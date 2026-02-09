@@ -10,20 +10,21 @@ app.secret_key = os.environ.get('SECRET_KEY', 'markaz_pro_ultra_secure_2026')
 
 # --- BAZA BILAN ULANISH ---
 def get_db():
-    # DATABASE_URL bo'lsa PostgreSQL (Neon), bo'lmasa SQLite (Mahalliy) ishlatadi
     db_url = os.environ.get('DATABASE_URL')
-    if db_url:
-        conn = psycopg2.connect(db_url, sslmode='require')
-        return conn
-    else:
-        # Agar Render'da DATABASE_URL bo'lmasa, xato bermasligi uchun
+    if not db_url:
         raise Exception("DATABASE_URL topilmadi! Render'da Environment Variable qo'shing.")
+    
+    # Render va Neon uchun postgres:// ni postgresql:// ga to'g'rilash
+    if db_url.startswith("postgres://"):
+        db_url = db_url.replace("postgres://", "postgresql://", 1)
+    
+    conn = psycopg2.connect(db_url)
+    return conn
 
 # --- BAZANI BOSHIDAN TO'LIQ SOZLANISHI ---
 def init_db():
     conn = get_db()
     c = conn.cursor()
-    # PostgreSQL uchun moslangan SQL (AUTOINCREMENT o'rniga SERIAL)
     c.execute('CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, username TEXT UNIQUE, password TEXT)')
     c.execute('CREATE TABLE IF NOT EXISTS courses (id SERIAL PRIMARY KEY, user_id INTEGER, name TEXT, price REAL DEFAULT 0, is_archived INTEGER DEFAULT 0)')
     c.execute('CREATE TABLE IF NOT EXISTS students (id SERIAL PRIMARY KEY, course_id INTEGER, name TEXT, phone TEXT)')
@@ -34,7 +35,6 @@ def init_db():
     c.close()
     conn.close()
 
-# Dastur ishga tushganda jadvallarni tekshirish
 with app.app_context():
     init_db()
 
@@ -45,9 +45,7 @@ def register():
         u = request.form.get('username')
         p = request.form.get('password')
         hashed_p = ws.generate_password_hash(p)
-        
-        conn = get_db()
-        c = conn.cursor()
+        conn = get_db(); c = conn.cursor()
         try:
             c.execute('INSERT INTO users (username, password) VALUES (%s, %s)', (u, hashed_p))
             conn.commit()
@@ -56,8 +54,7 @@ def register():
         except:
             flash("Bu login band!", "danger")
         finally:
-            c.close()
-            conn.close()
+            c.close(); conn.close()
     return render_template('registratsiya.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -65,13 +62,10 @@ def login():
     if request.method == 'POST':
         u = request.form.get('username')
         p = request.form.get('password')
-        conn = get_db()
-        c = conn.cursor(cursor_factory=RealDictCursor)
+        conn = get_db(); c = conn.cursor(cursor_factory=RealDictCursor)
         c.execute('SELECT * FROM users WHERE username = %s', (u,))
         user = c.fetchone()
-        c.close()
-        conn.close()
-        
+        c.close(); conn.close()
         if user and ws.check_password_hash(user['password'], p):
             session['user_id'] = user['id']
             session['username'] = user['username']
@@ -80,18 +74,21 @@ def login():
             flash("Login yoki parol xato!", "danger")
     return render_template('login.html')
 
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# --- DASHBOARD ---
 @app.route('/')
 @app.route('/dashboard')
 @app.route('/course/<int:course_id>')
 def dashboard(course_id=None):
     if 'user_id' not in session: return redirect(url_for('login'))
-    conn = get_db()
-    c = conn.cursor(cursor_factory=RealDictCursor)
+    conn = get_db(); c = conn.cursor(cursor_factory=RealDictCursor)
     c.execute('SELECT * FROM courses WHERE user_id = %s AND is_archived = 0', (session['user_id'],))
     courses = c.fetchall()
-    
     cv, students, dates, att_data, stats = None, [], [], {}, {}
-    
     if course_id:
         c.execute('SELECT * FROM courses WHERE id=%s AND user_id=%s', (course_id, session['user_id']))
         cv = c.fetchone()
@@ -114,11 +111,10 @@ def dashboard(course_id=None):
                         total += 1
                         if st == 'present': p += 1
                 stats[s['id']] = int(p/total*100) if total > 0 else 100
-    c.close()
-    conn.close()
+    c.close(); conn.close()
     return render_template('dashboard.html', courses=courses, course_view=cv, students=students, dates=dates, attendance_data=att_data, stats=stats)
 
-# --- QOLGAN FUNKSIYALARNI POSTGRES-GA MOSLASH ---
+# --- FUNKSIYALAR ---
 @app.route('/add_course', methods=['POST'])
 def add_course():
     conn = get_db(); c = conn.cursor()
@@ -134,19 +130,54 @@ def add_student():
     conn.commit(); c.close(); conn.close()
     return redirect(url_for('dashboard', course_id=cid))
 
+@app.route('/add_range_dates', methods=['POST'])
+def add_range_dates():
+    cid = request.form['course_id']
+    start = datetime.strptime(request.form['start_date'], '%Y-%m-%d')
+    end = datetime.strptime(request.form['end_date'], '%Y-%m-%d')
+    conn = get_db(); c = conn.cursor()
+    curr = start
+    while curr <= end:
+        if curr.weekday() != 6:
+            c.execute('INSERT INTO class_dates (course_id, date_str) VALUES (%s, %s)', (cid, curr.strftime('%d-%b')))
+        curr += timedelta(days=1)
+    conn.commit(); c.close(); conn.close()
+    return redirect(url_for('dashboard', course_id=cid))
+
 @app.route('/update_attendance', methods=['POST'])
 def update_att():
     d = request.json
     conn = get_db(); c = conn.cursor()
-    # PostgreSQL ON CONFLICT (UPSERT)
     c.execute('''INSERT INTO attendance (student_id, date_id, status) VALUES (%s, %s, %s) 
                  ON CONFLICT(student_id, date_id) DO UPDATE SET status=EXCLUDED.status''', 
               (d['student_id'], d['date_id'], d['status']))
     conn.commit(); c.close(); conn.close()
     return jsonify({'status': 'ok'})
 
-# ... (Boshqa route-larni ham %s va commit bilan bir xil uslubda davom ettirish mumkin)
-# Asosiy o'zgarishlar: '?' o'rniga '%s' ishlatiladi.
+@app.route('/add_payment', methods=['POST'])
+def add_payment():
+    d = request.json
+    conn = get_db(); c = conn.cursor()
+    c.execute('INSERT INTO payments (student_id, amount, p_date) VALUES (%s, %s, %s)',
+              (d['student_id'], d['amount'], datetime.now().strftime('%Y-%m-%d')))
+    conn.commit(); c.close(); conn.close()
+    return jsonify({'status': 'ok'})
+
+@app.route('/archive_course', methods=['POST'])
+def archive_course():
+    d = request.json
+    conn = get_db(); c = conn.cursor()
+    c.execute('UPDATE courses SET is_archived=1 WHERE id=%s', (d['id'],))
+    conn.commit(); c.close(); conn.close()
+    return jsonify({'status': 'ok'})
+
+@app.route('/delete_date', methods=['POST'])
+def delete_date():
+    d = request.json
+    conn = get_db(); c = conn.cursor()
+    c.execute('DELETE FROM class_dates WHERE id=%s', (d['id'],))
+    conn.commit(); c.close(); conn.close()
+    return jsonify({'status': 'ok'})
 
 if __name__ == '__main__':
     app.run(debug=True)
