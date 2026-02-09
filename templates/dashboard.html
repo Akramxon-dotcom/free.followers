@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markaz Pro | Premium ERP</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.5/xlsx.full.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #F4F7FE; --sidebar: #FFFFFF; --card: #FFFFFF; --text: #1B2559;
+            --muted: #A3AED0; --brand: #4318FF; --brand-hover: #3311DB;
+            --border: #E9EDF7; --success: #05CD99; --danger: #EE5D50; --warning: #FFB800;
+            --shadow: 0px 18px 40px rgba(112, 144, 176, 0.12);
+        }
+
+        body.dark-mode {
+            --bg: #0B1437; --sidebar: #111C44; --card: #111C44; --text: #FFFFFF;
+            --border: #1B254B; --shadow: none;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; transition: background 0.3s, color 0.3s; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        body { background: var(--bg); color: var(--text); display: flex; height: 100vh; overflow: hidden; }
+
+        /* SIDEBAR */
+        .sidebar { width: 290px; background: var(--sidebar); padding: 30px 20px; display: flex; flex-direction: column; border-right: 1px solid var(--border); z-index: 100; }
+        .logo { font-size: 26px; font-weight: 800; color: var(--brand); margin-bottom: 40px; text-align: center; }
+        .logo span { color: var(--text); }
+        
+        .nav-link { 
+            display: flex; align-items: center; gap: 12px; padding: 15px; 
+            border-radius: 15px; text-decoration: none; color: var(--muted); 
+            font-weight: 700; margin-bottom: 8px; transition: 0.2s; 
+        }
+        .nav-link:hover, .nav-link.active { background: var(--bg); color: var(--brand); }
+
+        .add-group-btn {
+            margin-top: 15px; padding: 15px; border: 2px dashed var(--border);
+            border-radius: 15px; text-align: center; color: var(--muted);
+            cursor: pointer; font-weight: 600; transition: 0.2s;
+        }
+        .add-group-btn:hover { border-color: var(--brand); color: var(--brand); }
+
+        /* MAIN CONTENT */
+        .main-content { flex: 1; display: flex; flex-direction: column; padding: 30px; overflow: hidden; animation: fadeIn 0.6s ease; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .search-box { 
+            background: var(--card); padding: 12px 20px; border-radius: 15px; 
+            display: flex; align-items: center; gap: 10px; width: 350px; border: 1px solid var(--border);
+        }
+        .search-box input { border: none; background: none; outline: none; color: var(--text); width: 100%; font-weight: 600; }
+
+        /* TABLE AREA */
+        .data-card { 
+            background: var(--card); border-radius: 25px; padding: 25px; 
+            box-shadow: var(--shadow); flex: 1; overflow: hidden; 
+            display: flex; flex-direction: column; border: 1px solid var(--border);
+        }
+        .table-container { overflow: auto; flex: 1; border-radius: 15px; }
+        
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        th { 
+            background: var(--card); padding: 18px; font-size: 11px; color: var(--muted); 
+            text-transform: uppercase; border-bottom: 2px solid var(--border); 
+            position: sticky; top: 0; z-index: 10;
+        }
+        td { padding: 15px; border-bottom: 1px solid var(--border); text-align: center; font-weight: 700; }
+
+        /* STICKY COLUMNS */
+        .st-1 { position: sticky; left: 0; background: var(--card)!important; z-index: 5; border-right: 1px solid var(--border); }
+        .st-2 { position: sticky; left: 50px; background: var(--card)!important; z-index: 5; text-align: left; border-right: 1px solid var(--border); }
+
+        /* BADGES */
+        .badge { padding: 8px 14px; border-radius: 12px; font-size: 12px; font-weight: 800; cursor: pointer; display: inline-block; }
+        .badge-wait { background: rgba(255, 184, 0, 0.1); color: var(--warning); }
+        .badge-debt { background: rgba(238, 93, 80, 0.1); color: var(--danger); }
+        .badge-success { background: rgba(5, 205, 153, 0.1); color: var(--success); }
+
+        /* ATTENDANCE SELECT */
+        .att-select { border: none; background: transparent; font-weight: 800; cursor: pointer; outline: none; appearance: none; text-align: center; }
+        .att-present { color: var(--success); }
+        .att-absent { color: var(--danger); }
+
+        /* MODALS */
+        .modal { 
+            position: fixed; inset: 0; background: rgba(0,0,0,0.4); 
+            backdrop-filter: blur(8px); display: none; align-items: center; 
+            justify-content: center; z-index: 1000; 
+        }
+        .modal-content { 
+            background: var(--card); width: 420px; padding: 35px; 
+            border-radius: 30px; animation: zoomIn 0.3s ease; border: 1px solid var(--border);
+        }
+        .inp { 
+            width: 100%; padding: 15px; border-radius: 15px; border: 1px solid var(--border); 
+            background: var(--bg); color: var(--text); margin: 12px 0; outline: none; font-weight: 700; 
+        }
+        .btn-prime { 
+            width: 100%; padding: 16px; border-radius: 15px; border: none; 
+            background: var(--brand); color: white; font-weight: 800; cursor: pointer; 
+            transition: 0.3s; margin-top: 10px;
+        }
+        .btn-prime:hover { background: var(--brand-hover); transform: translateY(-3px); }
+
+        /* CONTEXT MENU */
+        .ctx-menu { 
+            position: fixed; display: none; background: var(--card); border-radius: 15px; 
+            padding: 8px; box-shadow: var(--shadow); border: 1px solid var(--border); 
+            z-index: 2000; min-width: 190px; backdrop-filter: blur(12px);
+        }
+        .ctx-item { 
+            padding: 12px 15px; border-radius: 10px; cursor: pointer; font-weight: 700; 
+            display: flex; align-items: center; gap: 10px; color: var(--text);
+        }
+        .ctx-item:hover { background: var(--bg); color: var(--brand); }
+        .ctx-item.del { color: var(--danger); }
+        .ctx-item.del:hover { background: rgba(238, 93, 80, 0.1); }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="logo">Markaz <span>Pro</span></div>
+        <div id="courseList">
+            {% for c in courses %}
+            <a href="/course/{{ c.id }}" class="nav-link {% if course_view and course_view.id == c.id %}active{% endif %}" 
+               oncontextmenu="showCourseCtx(event, {{ c.id }}, '{{ c.name }}', {{ c.price }})">
+                <i class="fas fa-layer-group"></i> <span>{{ c.name }}</span>
+            </a>
+            {% endfor %}
+            <div class="add-group-btn" onclick="openModal('courseModal')">
+                <i class="fas fa-plus"></i> Yangi Guruh
+            </div>
+        </div>
+
+        <div style="margin-top: auto;">
+            <div class="nav-link" onclick="toggleDarkMode()" style="cursor:pointer;">
+                <i class="fas fa-moon"></i> <span>Tungi Rejim</span>
+            </div>
+            <a href="/logout" class="nav-link" style="color: var(--danger);">
+                <i class="fas fa-sign-out-alt"></i> <span>Chiqish</span>
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <div class="search-box">
+                <i class="fas fa-search" style="color:var(--muted)"></i>
+                <input type="text" id="globalSearch" placeholder="O'quvchini qidirish..." onkeyup="liveSearch()">
+            </div>
+
+            <div style="display:flex; gap:12px;">
+                <button onclick="exportToExcel()" class="btn-prime" style="background:var(--card); color:var(--brand); border:1px solid var(--border); width:auto; padding:10px 20px;">
+                    <i class="fas fa-file-excel"></i> Export
+                </button>
+                {% if course_view %}
+                <button onclick="openModal('studentModal')" class="btn-prime" style="width:auto; padding:10px 25px;">
+                    <i class="fas fa-user-plus"></i> Yangi O'quvchi
+                </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="data-card">
+            {% if course_view %}
+            <div style="display:flex; justify-content:space-between; margin-bottom:20px; align-items:center;">
+                <h2>{{ course_view.name }} <span style="font-size:14px; color:var(--muted); font-weight:500;">({{ course_view.price }} so'm)</span></h2>
+            </div>
+
+            <div class="table-container">
+                <table id="erpTable">
+                    <thead>
+                        <tr>
+                            <th class="st-1">№</th>
+                            <th class="st-2">O'quvchi Ismi</th>
+                            <th>To'lov Holati</th>
+                            <th>O'zlashtirish</th>
+                            {% for d in dates %}
+                            <th oncontextmenu="showDateCtx(event, {{ d.id }})">{{ d.date_str }}</th>
+                            {% endfor %}
+                            <th onclick="openModal('dateModal')" style="color:var(--brand); cursor:pointer;"><i class="fas fa-plus-circle"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        {% for s in students %}
+                        <tr>
+                            <td class="st-1">{{ loop.index }}</td>
+                            <td class="st-2">{{ s.name }}</td>
+                            <td>
+                                {% set debt = course_view.price - s.total_paid %}
+                                {% if s.total_paid == 0 %}
+                                    <div class="badge badge-wait" onclick="openPayModal({{ s.id }}, '{{ s.name }}', {{ course_view.price }}, {{ s.total_paid }})">Kutilmoqda</div>
+                                {% elif debt > 0 %}
+                                    <div class="badge badge-debt" onclick="openPayModal({{ s.id }}, '{{ s.name }}', {{ course_view.price }}, {{ s.total_paid }})">Qarz: {{ debt }}</div>
+                                {% else %}
+                                    <div class="badge badge-success" onclick="openPayModal({{ s.id }}, '{{ s.name }}', {{ course_view.price }}, {{ s.total_paid }})">To'landi</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:8px; justify-content:center;">
+                                    <div style="width:50px; height:6px; background:#eee; border-radius:10px; overflow:hidden;">
+                                        <div class="progress-fill" style="width:{{ stats[s.id] }}%; height:100%; background:var(--success);"></div>
+                                    </div>
+                                    <span class="percent-text">{{ stats[s.id] }}%</span>
+                                </div>
+                            </td>
+                            {% for d in dates %}
+                            <td>
+                                <select class="att-select {% if attendance_data[s.id][d.id] == 'present' %}att-present{% elif attendance_data[s.id][d.id] == 'absent' %}att-absent{% endif %}" 
+                                        onchange="updateAttendance({{ s.id }}, {{ d.id }}, this)">
+                                    <option value="">-</option>
+                                    <option value="present" {% if attendance_data[s.id][d.id] == 'present' %}selected{% endif %}>✅</option>
+                                    <option value="absent" {% if attendance_data[s.id][d.id] == 'absent' %}selected{% endif %}>❌</option>
+                                </select>
+                            </td>
+                            {% endfor %}
+                            <td></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div style="text-align:center; margin-top:100px; color:var(--muted);">
+                <i class="fas fa-layer-group" style="font-size:60px; margin-bottom:20px;"></i>
+                <h3>Guruhni tanlang yoki yangi qo'shing</h3>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div id="courseModal" class="modal"><div class="modal-content">
+        <h3>Yangi Guruh Qo'shish</h3>
+        <form action="/add_course" method="POST">
+            <input type="text" name="name" class="inp" placeholder="Guruh nomi" required>
+            <input type="number" name="price" class="inp" placeholder="Kurs narxi (oylik)" required>
+            <button type="submit" class="btn-prime">Yaratish</button>
+            <button type="button" onclick="closeModal('courseModal')" class="inp" style="background:none; border:none;">Bekor qilish</button>
+        </form>
+    </div></div>
+
+    <div id="studentModal" class="modal"><div class="modal-content">
+        <h3>Yangi O'quvchi</h3>
+        <form action="/add_student" method="POST">
+            <input type="hidden" name="course_id" value="{{ course_view.id if course_view else '' }}">
+            <input type="text" name="name" class="inp" placeholder="F.I.SH" required>
+            <input type="text" name="phone" class="inp" placeholder="Telefon raqami">
+            <button type="submit" class="btn-prime">Qo'shish</button>
+            <button type="button" onclick="closeModal('studentModal')" class="inp" style="background:none; border:none;">Yopish</button>
+        </form>
+    </div></div>
+
+    <div id="dateModal" class="modal"><div class="modal-content">
+        <h3>Dars kunlarini shakllantirish</h3>
+        <form action="/add_range_dates" method="POST">
+            <input type="hidden" name="course_id" value="{{ course_view.id if course_view else '' }}">
+            <label>Boshlanish:</label><input type="date" name="start_date" class="inp" required>
+            <label>Tugash:</label><input type="date" name="end_date" class="inp" required>
+            <button type="submit" class="btn-prime">Jadvalni yaratish</button>
+            <button type="button" onclick="closeModal('dateModal')" class="inp" style="background:none; border:none;">Yopish</button>
+        </form>
+    </div></div>
+
+    <div id="payModal" class="modal"><div class="modal-content">
+        <h3 id="payName">To'lov qilish</h3>
+        <div style="margin:15px 0; font-size:14px; color:var(--muted);">
+            Kurs narxi: <b id="payCoursePrice">0</b> <br>
+            To'langan: <b id="payTotalPaid">0</b>
+        </div>
+        <input type="number" id="payAmount" class="inp" placeholder="Summa kiriting">
+        <button onclick="submitPayment()" class="btn-prime">Saqlash</button>
+        <button type="button" onclick="closeModal('payModal')" class="inp" style="background:none; border:none;">Bekor qilish</button>
+    </div></div>
+
+    <div id="courseCtx" class="ctx-menu">
+        <div class="ctx-item" onclick="editCoursePrompt()"><i class="fas fa-edit"></i> Tahrirlash</div>
+        <div class="ctx-item" onclick="archiveCourseAction()"><i class="fas fa-archive"></i> Arxivlash</div>
+        <div class="ctx-item del" onclick="deleteCourseAction()"><i class="fas fa-trash"></i> O'chirish</div>
+    </div>
+    <div id="dateCtx" class="ctx-menu">
+        <div class="ctx-item del" onclick="deleteDateAction()"><i class="fas fa-calendar-times"></i> Kunni o'chirish</div>
+    </div>
+
+    <script>
+        let selectedCourse = null;
+        let selectedDateId = null;
+        let selectedStudent = null;
+
+        function openModal(id) { document.getElementById(id).style.display='flex'; }
+        function closeModal(id) { document.getElementById(id).style.display='none'; }
+
+        // DARK MODE
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+        if(localStorage.getItem('darkMode') === 'true') document.body.classList.add('dark-mode');
+
+        // LIVE SEARCH
+        function liveSearch() {
+            let filter = document.getElementById('globalSearch').value.toLowerCase();
+            let rows = document.querySelectorAll('#tableBody tr');
+            rows.forEach(row => {
+                let name = row.querySelector('.st-2').innerText.toLowerCase();
+                row.style.display = name.includes(filter) ? "" : "none";
+            });
+        }
+
+        // CONTEXT MENU LOGIC
+        function showCourseCtx(e, id, name, price) {
+            e.preventDefault();
+            selectedCourse = {id, name, price};
+            let menu = document.getElementById('courseCtx');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+        function showDateCtx(e, id) {
+            e.preventDefault();
+            selectedDateId = id;
+            let menu = document.getElementById('dateCtx');
+            menu.style.display = 'block';
+            menu.style.left = e.pageX + 'px';
+            menu.style.top = e.pageY + 'px';
+        }
+        window.onclick = function() {
+            document.getElementById('courseCtx').style.display = 'none';
+            document.getElementById('dateCtx').style.display = 'none';
+        }
+
+        // DAVOMAT AJAX (YANGILANMASDAN ISHLAYDI)
+        function updateAttendance(sid, did, el) {
+            el.className = 'att-select ' + (el.value === 'present' ? 'att-present' : (el.value === 'absent' ? 'att-absent' : ''));
+            
+            fetch('/update_attendance', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({student_id: sid, date_id: did, status: el.value})
+            }).then(res => res.json())
+            .then(data => {
+                if(data.status === 'ok') {
+                    recalculateProgress(sid);
+                }
+            });
+        }
+
+        function recalculateProgress(sid) {
+            let selectEl = document.querySelector(`select[onchange*="updateAttendance(${sid},"]`);
+            if (!selectEl) return;
+            let row = selectEl.closest('tr');
+            let selects = row.querySelectorAll('.att-select');
+            
+            let present = 0, total = 0;
+            selects.forEach(sel => {
+                if(sel.value === 'present') { present++; total++; }
+                else if(sel.value === 'absent') { total++; }
+            });
+
+            let percent = total > 0 ? Math.round((present / total) * 100) : 100;
+            let percentSpan = row.querySelector('.percent-text');
+            if(percentSpan) percentSpan.innerText = percent + '%';
+            
+            let progressBar = row.querySelector('.progress-fill');
+            if(progressBar) progressBar.style.width = percent + '%';
+        }
+
+        // TO'LOV
+        function openPayModal(id, name, price, paid) {
+            selectedStudent = {id, price, paid};
+            document.getElementById('payName').innerText = name + " - To'lov";
+            document.getElementById('payCoursePrice').innerText = price + " so'm";
+            document.getElementById('payTotalPaid').innerText = paid + " so'm";
+            openModal('payModal');
+        }
+        function submitPayment() {
+            let amt = document.getElementById('payAmount').value;
+            if(!amt) return;
+            fetch('/add_payment', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({student_id: selectedStudent.id, amount: amt})
+            }).then(() => location.reload());
+        }
+
+        // BOSHQARUV FUNKSIYALARI
+        function editCoursePrompt() {
+            let n = prompt("Guruh nomi:", selectedCourse.name);
+            let p = prompt("Kurs narxi:", selectedCourse.price);
+            if(n && p) {
+                fetch('/edit_course', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({id: selectedCourse.id, name: n, price: p})
+                }).then(() => location.reload());
+            }
+        }
+        function archiveCourseAction() {
+            if(confirm("Guruhni arxivlamoqchimisiz?")) {
+                fetch('/archive_course', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({id: selectedCourse.id})
+                }).then(() => location.assign('/dashboard'));
+            }
+        }
+        function deleteCourseAction() {
+            if(confirm("Guruh butunlay o'chib ketadi. Rozimisiz?")) {
+                fetch('/delete_course', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({id: selectedCourse.id})
+                }).then(() => location.assign('/dashboard'));
+            }
+        }
+        function deleteDateAction() {
+            if(confirm("Dars kunini o'chirasizmi?")) {
+                fetch('/delete_date', {
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({id: selectedDateId})
+                }).then(() => location.reload());
+            }
+        }
+
+        function exportToExcel() {
+            let table = document.getElementById("erpTable");
+            let wb = XLSX.utils.table_to_book(table, {sheet: "Davomat"});
+            XLSX.writeFile(wb, "Markaz_Pro_Hisobot.xlsx");
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Markaz Pro | Kirish</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;800&display=swap" rel="stylesheet">
+    <style>
+        body { background: #F4F7FE; font-family: 'Plus Jakarta Sans'; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .login-card { 
+            background: white; padding: 45px; border-radius: 30px; width: 400px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.05); text-align: center;
+            animation: zoomIn 0.5s ease;
+        }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-10px); } 40%, 80% { transform: translateX(10px); } }
+        .shake { animation: shake 0.4s ease; border: 1px solid #EE5D50!important; }
+        .inp { width: 100%; padding: 16px; margin: 12px 0; border-radius: 15px; border: 1px solid #E9EDF7; outline: none; background: #F4F7FE; font-weight: 600; }
+        .btn { width: 100%; padding: 16px; border-radius: 15px; border: none; background: #4318FF; color: white; font-weight: 800; cursor: pointer; font-size: 16px; }
+        .status-msg { font-size: 12px; margin-bottom: 10px; display: block; font-weight: 700; }
+    </style>
+</head>
+<body>
+    <div class="login-card {% if get_flashed_messages() %}shake{% endif %}">
+        <h2 style="margin-bottom: 10px; color: #1B2559;">Xush Kelibsiz!</h2>
+        <p style="color: #A3AED0; margin-bottom: 30px;">Markaz Pro tizimiga kiring</p>
+        
+        <form method="POST">
+            <input type="text" name="username" id="uInp" class="inp" placeholder="Login" required onkeyup="checkUser(this.value)">
+            <span id="uStatus" class="status-msg"></span>
+            <input type="password" name="password" class="inp" placeholder="Parol" required>
+            <button type="submit" class="btn">Kirish</button>
+        </form>
+        <p style="margin-top: 20px; font-size: 14px; color: #A3AED0;">
+            Hisobingiz yo'qmi? <a href="/register" style="color: #4318FF; text-decoration: none; font-weight: 700;">Ro'yxatdan o'ting</a>
+        </p>
+    </div>
+
+    <script>
+        function checkUser(val) {
+            if(val.length < 3) { document.getElementById('uStatus').innerText = ''; return; }
+            fetch('/check_user/' + val)
+            .then(res => res.json())
+            .then(data => {
+                let st = document.getElementById('uStatus');
+                if(data.exists) {
+                    st.innerText = "Foydalanuvchi topildi ✅"; st.style.color = "#05CD99";
+                } else {
+                    st.innerText = "Bunday login mavjud emas ❌"; st.style.color = "#EE5D50";
+                }
+            });
+        }
+    </script>
+</body>
+</html>

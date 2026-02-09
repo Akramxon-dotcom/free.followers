@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ro'yxatdan o'tish | Markaz Pro</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg: #F4F7FE;
+            --card: #FFFFFF;
+            --text: #1B2559;
+            --muted: #A3AED0;
+            --brand: #4318FF;
+            --brand-hover: #3311DB;
+            --border: #E9EDF7;
+            --danger: #EE5D50;
+            --success: #05CD99;
+        }
+
+        body { 
+            background: var(--bg); 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        .auth-card { 
+            background: var(--card); 
+            padding: 45px; 
+            border-radius: 30px; 
+            box-shadow: 0 20px 50px rgba(112, 144, 176, 0.12); 
+            width: 400px; 
+            text-align: center;
+            animation: zoomIn 0.5s ease;
+        }
+
+        @keyframes zoomIn { 
+            from { opacity: 0; transform: scale(0.9); } 
+            to { opacity: 1; transform: scale(1); } 
+        }
+
+        h2 { color: var(--text); margin-bottom: 10px; font-weight: 800; }
+        p { color: var(--muted); margin-bottom: 30px; font-size: 15px; }
+
+        .inp-group { position: relative; margin-bottom: 20px; }
+        
+        .inp { 
+            width: 100%; 
+            padding: 16px; 
+            border-radius: 15px; 
+            border: 1px solid var(--border); 
+            outline: none; 
+            background: var(--bg); 
+            font-weight: 600; 
+            font-size: 15px;
+            box-sizing: border-box;
+            transition: 0.3s;
+        }
+
+        .inp:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1); }
+
+        .btn { 
+            width: 100%; 
+            padding: 16px; 
+            background: var(--brand); 
+            color: white; 
+            border: none; 
+            border-radius: 15px; 
+            cursor: pointer; 
+            font-weight: 800; 
+            font-size: 16px;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn:hover { background: var(--brand-hover); transform: translateY(-2px); }
+
+        .link { 
+            display: block; 
+            text-align: center; 
+            margin-top: 25px; 
+            color: var(--muted); 
+            text-decoration: none; 
+            font-size: 14px; 
+            font-weight: 600;
+        }
+
+        .link b { color: var(--brand); }
+
+        /* Flash xabarlar uslubi */
+        .flash-messages {
+            list-style: none;
+            padding: 0;
+            margin-bottom: 20px;
+        }
+
+        .flash {
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .flash.danger { background: rgba(238, 93, 80, 0.1); color: var(--danger); }
+        .flash.success { background: rgba(5, 205, 153, 0.1); color: var(--success); }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h2>Yangi Hisob</h2>
+        <p>Markaz Pro tizimiga qo'shiling</p>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-messages">
+              {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <form action="/register" method="POST">
+            <div class="inp-group">
+                <input type="text" name="username" class="inp" placeholder="Login tanlang" required autocomplete="off">
+            </div>
+            <div class="inp-group">
+                <input type="password" name="password" class="inp" placeholder="Murakkab parol" required>
+            </div>
+            <button type="submit" class="btn">Ro'yxatdan o'tish</button>
+        </form>
+
+        <a href="/login" class="link">Profilingiz bormi? <b>Kirish</b></a>
+    </div>
+
+    <script>
+        // Formani bir marta yuborilishini ta'minlash (duplikatsiya oldini olish)
+        document.querySelector('form').onsubmit = function() {
+            this.querySelector('button').innerText = "Yuklanmoqda...";
+            this.querySelector('button').style.opacity = "0.7";
+            this.querySelector('button').disabled = true;
+        };
+    </script>
+</body>
+</html>
