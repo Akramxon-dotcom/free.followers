@@ -27,44 +27,73 @@
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            height: 100vh; 
+            min-height: 100vh; 
             margin: 0; 
         }
 
         .auth-card { 
             background: var(--card); 
-            padding: 45px; 
+            padding: 40px; 
             border-radius: 30px; 
             box-shadow: 0 20px 50px rgba(112, 144, 176, 0.12); 
-            width: 400px; 
+            width: 100%;
+            max-width: 420px; 
             text-align: center;
-            animation: zoomIn 0.5s ease;
+            animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            margin: 20px;
         }
 
         @keyframes zoomIn { 
-            from { opacity: 0; transform: scale(0.9); } 
+            from { opacity: 0; transform: scale(0.95); } 
             to { opacity: 1; transform: scale(1); } 
         }
 
-        h2 { color: var(--text); margin-bottom: 10px; font-weight: 800; }
-        p { color: var(--muted); margin-bottom: 30px; font-size: 15px; }
+        h2 { color: var(--text); margin-bottom: 8px; font-weight: 800; font-size: 28px; }
+        p.desc { color: var(--muted); margin-bottom: 30px; font-size: 15px; }
 
-        .inp-group { position: relative; margin-bottom: 20px; }
+        .inp-group { position: relative; margin-bottom: 18px; text-align: left; }
         
+        .inp-label {
+            display: block;
+            margin-left: 5px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .inp-wrapper { position: relative; }
+
         .inp { 
             width: 100%; 
-            padding: 16px; 
-            border-radius: 15px; 
+            padding: 16px 45px 16px 16px; 
+            border-radius: 16px; 
             border: 1px solid var(--border); 
             outline: none; 
-            background: var(--bg); 
+            background: #fff; 
             font-weight: 600; 
             font-size: 15px;
             box-sizing: border-box;
-            transition: 0.3s;
+            transition: 0.2s ease-in-out;
+            color: var(--text);
         }
 
-        .inp:focus { border-color: var(--brand); box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.1); }
+        .inp:focus { 
+            border-color: var(--brand); 
+            box-shadow: 0 0 0 4px rgba(67, 24, 255, 0.08); 
+        }
+
+        /* Parol ko'zchasi */
+        .toggle-pass {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .toggle-pass:hover { color: var(--brand); }
 
         .btn { 
             width: 100%; 
@@ -72,21 +101,27 @@
             background: var(--brand); 
             color: white; 
             border: none; 
-            border-radius: 15px; 
+            border-radius: 16px; 
             cursor: pointer; 
             font-weight: 800; 
             font-size: 16px;
             transition: 0.3s;
-            margin-top: 10px;
+            margin-top: 15px;
+            box-shadow: 0 10px 20px rgba(67, 24, 255, 0.15);
         }
 
-        .btn:hover { background: var(--brand-hover); transform: translateY(-2px); }
+        .btn:hover { 
+            background: var(--brand-hover); 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(67, 24, 255, 0.2);
+        }
+
+        .btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; }
 
         .link { 
             display: block; 
-            text-align: center; 
             margin-top: 25px; 
-            color: var(--muted); 
+            color: var(--text); 
             text-decoration: none; 
             font-size: 14px; 
             font-weight: 600;
@@ -94,60 +129,89 @@
 
         .link b { color: var(--brand); }
 
-        /* Flash xabarlar uslubi */
-        .flash-messages {
-            list-style: none;
-            padding: 0;
-            margin-bottom: 20px;
-        }
-
+        /* Xabarlar */
         .flash {
-            padding: 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: 700;
-            margin-bottom: 10px;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .flash.danger { background: rgba(238, 93, 80, 0.1); color: var(--danger); }
-        .flash.success { background: rgba(5, 205, 153, 0.1); color: var(--success); }
+        .flash.danger { background: #FFECEB; color: var(--danger); }
+        .flash.success { background: #E6FFF5; color: var(--success); }
+
     </style>
 </head>
 <body>
+
     <div class="auth-card">
         <h2>Yangi Hisob</h2>
-        <p>Markaz Pro tizimiga qo'shiling</p>
+        <p class="desc">Markaz Pro ekotizimiga xush kelibsiz</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
-            <div class="flash-messages">
-              {% for category, message in messages %}
-                <div class="flash {{ category }}">{{ message }}</div>
-              {% endfor %}
-            </div>
+            {% for category, message in messages %}
+              <div class="flash {{ category }}">
+                  <i class="fa-solid fa-circle-info"></i> {{ message }}
+              </div>
+            {% endfor %}
           {% endif %}
         {% endwith %}
 
-        <form action="/register" method="POST">
+        <form action="/register" method="POST" id="regForm">
             <div class="inp-group">
-                <input type="text" name="username" class="inp" placeholder="Login tanlang" required autocomplete="off">
+                <label class="inp-label">Login</label>
+                <div class="inp-wrapper">
+                    <input type="text" name="username" class="inp" placeholder="@username" required minlength="4">
+                </div>
             </div>
+
             <div class="inp-group">
-                <input type="password" name="password" class="inp" placeholder="Murakkab parol" required>
+                <label class="inp-label">Parol</label>
+                <div class="inp-wrapper">
+                    <input type="password" name="password" id="passInput" class="inp" placeholder="••••••••" required minlength="6">
+                    <i class="fa-solid fa-eye toggle-pass" id="toggleIcon"></i>
+                </div>
             </div>
-            <button type="submit" class="btn">Ro'yxatdan o'tish</button>
+
+            <button type="submit" class="btn" id="submitBtn">Ro'yxatdan o'tish</button>
         </form>
 
         <a href="/login" class="link">Profilingiz bormi? <b>Kirish</b></a>
     </div>
 
     <script>
-        // Formani bir marta yuborilishini ta'minlash (duplikatsiya oldini olish)
-        document.querySelector('form').onsubmit = function() {
-            this.querySelector('button').innerText = "Yuklanmoqda...";
-            this.querySelector('button').style.opacity = "0.7";
-            this.querySelector('button').disabled = true;
+        const regForm = document.getElementById('regForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const passInput = document.getElementById('passInput');
+        const toggleIcon = document.getElementById('toggleIcon');
+
+        // 1. Parol ko'rinishini boshqarish
+        toggleIcon.addEventListener('click', () => {
+            const type = passInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passInput.setAttribute('type', type);
+            toggleIcon.classList.toggle('fa-eye');
+            toggleIcon.classList.toggle('fa-eye-slash');
+        });
+
+        // 2. Formani yuborish va animatsiya
+        regForm.onsubmit = function() {
+            submitBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Yuklanmoqda...';
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = "0.8";
         };
+
+        // 3. Kichik interaktivlik: Login kiritilganda @ belgisini tekshirish (ixtiyoriy)
+        const userInp = document.querySelector('input[name="username"]');
+        userInp.addEventListener('input', (e) => {
+            if(e.target.value.length > 0 && !e.target.value.startsWith('@')) {
+                // Avtomatik @ qo'shishni istasangiz shu yerga yozishingiz mumkin
+            }
+        });
     </script>
 </body>
 </html>
